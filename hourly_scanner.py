@@ -12,7 +12,7 @@ def calculate_ema(data, period):
     return data.ewm(span=period, adjust=False).mean()
 
 def smooth_range(source, period, multiplier):
-
+    
     abs_changes = abs(source - source.shift(1))
     
     weighted_period = period * 2 - 1
@@ -164,7 +164,7 @@ def send_telegram_message(text):
     payload = {
         "chat_id": TELEGRAM_CHAT_ID,
         "text": text,
-        "parse_mode": "HTML"
+        "parse_mode": "Markdown"
     }
     try:
         response = requests.post(url, json=payload)
@@ -177,39 +177,21 @@ def send_telegram_message(text):
 app = Flask(__name__)
 scheduler = BackgroundScheduler()
 
-def get_coin_icon(symbol):
-    # CoinGecko API ile sembolden ikon url'si al
-    try:
-        url = f"https://api.coingecko.com/api/v3/coins/list"
-        response = requests.get(url)
-        if response.status_code == 200:
-            coins = response.json()
-            symbol_lower = symbol.lower().replace('usdt', '')
-            for coin in coins:
-                if coin['symbol'] == symbol_lower:
-                    coin_id = coin['id']
-                    info_url = f"https://api.coingecko.com/api/v3/coins/{coin_id}"
-                    info_resp = requests.get(info_url)
-                    if info_resp.status_code == 200:
-                        icon_url = info_resp.json()['image']['thumb']
-                        return icon_url
-        return None
-    except Exception:
-        return None
-
 def scan_and_notify():
     tz = pytz.timezone("Europe/Istanbul")
     now = datetime.now(tz)
     print(f"Tarama zamanı: {now.strftime('%Y-%m-%d %H:%M:%S')}")
     results = get_futures_data()
     if results:
-        message = "<b>📊 Saatlik Tarama Sonuçları</b>\n\n"
+
+        message = "📊 *Saatlik Tarama Sonuçları*\n\n"
         for result in results:
+            
             if result.startswith("🟢") or result.startswith("🔴"):
                 parts = result.split()
                 symbol = parts[1].replace("USDT", "")
                 emoji = "🟢" if result.startswith("🟢") else "🔴"
-                message += f"{emoji} <b>{symbol}USDT</b>\n"
+                message += f"{emoji} `{symbol}USDT`\n"
             else:
                 message += result + "\n"
         send_telegram_message(message)
@@ -217,7 +199,7 @@ def scan_and_notify():
         send_telegram_message("Saatlik taramada sinyal bulunamadı.")
 
 def schedule_job():
-    scheduler.add_job(scan_and_notify, 'cron', minute='0,5,10,15,20,25,30,35,40,45,50,55', timezone='Europe/Istanbul')
+    scheduler.add_job(scan_and_notify, 'cron', minute='50', timezone='Europe/Istanbul')
     scheduler.start()
 
 @app.route("/")
